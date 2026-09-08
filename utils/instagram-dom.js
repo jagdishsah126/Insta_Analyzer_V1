@@ -2,11 +2,23 @@
 // All Instagram DOM interaction is ISOLATED here.
 // When Instagram updates its UI, only this file needs to change.
 
+// ⚠️ These are Instagram's own internal navigation routes — NOT real user accounts.
+// Any <a href="/route/"> matching these will be ignored during capture.
 const BLOCKED_ROUTES = new Set([
-  'explore', 'reel', 'p', 'stories', 'direct', 'accounts',
-  'about', 'legal', 'locations', 'tags', 'ar', 'graphql',
-  'login', 'logout', 'help', 'press', 'api', 'privacy',
-  'security', 'terms', 'contact', 'blog', 'jobs'
+  // Instagram navigation & features
+  'explore', 'reels', 'reel', 'popular', 'trending',
+  'p', 'tv', 'stories', 'highlights', 'live',
+  'direct', 'inbox', 'notifications',
+  // Account & settings routes
+  'accounts', 'login', 'logout', 'signup', 'challenge',
+  'privacy', 'security', 'settings',
+  // Legal & info pages
+  'about', 'legal', 'terms', 'help', 'support',
+  'press', 'blog', 'jobs', 'contact',
+  // Technical routes
+  'api', 'graphql', 'ar', 'locations', 'tags',
+  // Meta/Facebook owned pages
+  'meta', 'facebook', 'messenger',
 ]);
 
 const InstagramDOM = {

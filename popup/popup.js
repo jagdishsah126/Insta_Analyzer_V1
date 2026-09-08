@@ -47,6 +47,7 @@
   const btnJson           = $('btn-json');
   const btnNewSession     = $('btn-new-session');
   const btnClear          = $('btn-clear');
+  const btnFullscreen     = $('btn-fullscreen');
   const toast             = $('toast');
 
   // ── State ─────────────────────────────────────────────────────────────────────
@@ -235,6 +236,11 @@
     btnJson.addEventListener('click',       exportJSON);
     btnNewSession.addEventListener('click', newSession);
     btnClear.addEventListener('click',      clearData);
+
+    // Open full-screen dashboard in a new tab
+    btnFullscreen.addEventListener('click', () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
+    });
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────────
@@ -312,33 +318,25 @@
   }
 
   function exportCSV() {
+    if (!currentProfile) { showToast('⚠️ No data to export.', 'error'); return; }
     const profileData = profilesData[currentProfile] || {};
-    const modeData    = profileData[activeTab];
-    if (!modeData) { showToast('⚠️ No data to export.', 'error'); return; }
-    const csv = CSVExporter.build({
-      profile: currentProfile,
-      mode: activeTab,
-      captured_at: modeData.captured_at,
-      count: modeData.count,
-      users: modeData.users
-    });
-    CSVExporter.download(csv, currentProfile, activeTab);
-    showToast('⬇ CSV downloaded!', 'success');
+    if (!profileData.followers && !profileData.following) {
+      showToast('⚠️ No data to export.', 'error'); return;
+    }
+    const csv = CSVExporter.buildCombined(currentProfile, profileData);
+    CSVExporter.downloadCombined(csv, currentProfile);
+    showToast('⬇ Combined CSV downloaded!', 'success');
   }
 
   function exportJSON() {
+    if (!currentProfile) { showToast('⚠️ No data to export.', 'error'); return; }
     const profileData = profilesData[currentProfile] || {};
-    const modeData    = profileData[activeTab];
-    if (!modeData) { showToast('⚠️ No data to export.', 'error'); return; }
-    const obj = JSONExporter.build({
-      profile: currentProfile,
-      mode: activeTab,
-      captured_at: modeData.captured_at,
-      count: modeData.count,
-      users: modeData.users
-    });
-    JSONExporter.download(obj, currentProfile, activeTab);
-    showToast('⬇ JSON downloaded!', 'success');
+    if (!profileData.followers && !profileData.following) {
+      showToast('⚠️ No data to export.', 'error'); return;
+    }
+    const obj = JSONExporter.buildCombined(currentProfile, profileData);
+    JSONExporter.downloadCombined(obj, currentProfile);
+    showToast('⬇ Combined JSON downloaded!', 'success');
   }
 
   async function newSession() {

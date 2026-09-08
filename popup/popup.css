@@ -47,6 +47,28 @@ body {
   gap: 7px;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-fullscreen {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all var(--transition);
+  line-height: 1;
+}
+.btn-fullscreen:hover {
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+
 .logo-icon { font-size: 18px; }
 .logo-text  {
   font-size: 15px;

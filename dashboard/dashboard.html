@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Insta Analyzer — Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css"/>
+</head>
+<body>
+
+<!-- ── Top Bar ── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="logo-icon">📊</span>
+    <span class="logo-text">Insta Analyzer</span>
+    <span class="logo-sub">Dashboard</span>
+  </div>
+  <div class="topbar-center">
+    <label class="profile-label">Profile:</label>
+    <select id="profile-select" class="profile-select">
+      <option value="">— Select Profile —</option>
+    </select>
+  </div>
+  <div class="topbar-right">
+    <button id="btn-refresh" class="btn btn-ghost">🔄 Refresh</button>
+    <button id="btn-export-all" class="btn btn-primary">⬇ Export All Data</button>
+    <button id="btn-export-json-all" class="btn btn-primary-outline">⬇ JSON All</button>
+  </div>
+</header>
+
+<!-- ── Stats Bar ── -->
+<div id="stats-bar" class="stats-bar hidden">
+  <div class="stat-pill">
+    <span class="stat-icon">📥</span>
+    <span id="sb-followers">0</span> Followers
+  </div>
+  <div class="stat-pill">
+    <span class="stat-icon">📤</span>
+    <span id="sb-following">0</span> Following
+  </div>
+  <div class="stat-pill accent-red">
+    <span class="stat-icon">❌</span>
+    <span id="sb-nfb">0</span> Not Following Back
+  </div>
+  <div class="stat-pill accent-blue">
+    <span class="stat-icon">👤</span>
+    <span id="sb-nfl">0</span> You Don't Follow Back
+  </div>
+  <div class="stat-pill accent-green">
+    <span class="stat-icon">🤝</span>
+    <span id="sb-mutual">0</span> Mutual
+  </div>
+</div>
+
+<!-- ── Main Grid ── -->
+<main class="grid" id="main-grid">
+
+  <!-- Followers Column -->
+  <section class="col" id="col-followers">
+    <div class="col-header">
+      <span class="col-title">📥 Followers</span>
+      <span class="col-count" id="count-followers">0</span>
+      <div class="col-actions">
+        <button class="btn btn-sm" onclick="exportColCSV('followers')">⬇ CSV</button>
+        <button class="btn btn-sm" onclick="exportColJSON('followers')">⬇ JSON</button>
+      </div>
+    </div>
+    <input type="text" class="search-box" id="search-followers" placeholder="🔍 Search followers..." oninput="filterCol('followers')"/>
+    <div class="user-list" id="list-followers">
+      <div class="empty">No followers data captured yet.</div>
+    </div>
+  </section>
+
+  <!-- Following Column -->
+  <section class="col" id="col-following">
+    <div class="col-header">
+      <span class="col-title">📤 Following</span>
+      <span class="col-count" id="count-following">0</span>
+      <div class="col-actions">
+        <button class="btn btn-sm" onclick="exportColCSV('following')">⬇ CSV</button>
+        <button class="btn btn-sm" onclick="exportColJSON('following')">⬇ JSON</button>
+      </div>
+    </div>
+    <input type="text" class="search-box" id="search-following" placeholder="🔍 Search following..." oninput="filterCol('following')"/>
+    <div class="user-list" id="list-following">
+      <div class="empty">No following data captured yet.</div>
+    </div>
+  </section>
+
+  <!-- Comparison Column -->
+  <section class="col" id="col-compare">
+    <div class="col-header">
+      <span class="col-title">🔄 Comparison</span>
+      <span class="col-count" id="count-compare">—</span>
+      <div class="col-actions">
+        <button id="btn-dl-result-csv"  class="btn btn-sm btn-accent" onclick="downloadResult('csv')">⬇ Result CSV</button>
+        <button id="btn-dl-result-json" class="btn btn-sm btn-accent" onclick="downloadResult('json')">⬇ Result JSON</button>
+      </div>
+    </div>
+    <input type="text" class="search-box" id="search-compare" placeholder="🔍 Search comparison..." oninput="filterCompare()"/>
+
+    <!-- Sub-sections -->
+    <div class="compare-container" id="compare-container">
+      <div class="compare-group">
+        <div class="compare-group-header red">
+          ❌ Not Following You Back
+          <span class="compare-cnt" id="cnt-nfb">0</span>
+        </div>
+        <div class="user-list compare-list" id="list-nfb"></div>
+      </div>
+      <div class="compare-group">
+        <div class="compare-group-header blue">
+          👤 You Don't Follow Back
+          <span class="compare-cnt" id="cnt-nfl">0</span>
+        </div>
+        <div class="user-list compare-list" id="list-nfl"></div>
+      </div>
+      <div class="compare-group">
+        <div class="compare-group-header green">
+          🤝 Mutual Followers
+          <span class="compare-cnt" id="cnt-mutual">0</span>
+        </div>
+        <div class="user-list compare-list" id="list-mutual"></div>
+      </div>
+    </div>
+    <div class="empty" id="compare-empty">Capture both Followers &amp; Following to see comparison.</div>
+  </section>
+
+</main>
+
+<!-- ── Toast ── -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="../utils/helpers.js"></script>
+<script src="../utils/csv.js"></script>
+<script src="../utils/json-export.js"></script>
+<script src="../utils/compare.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>
