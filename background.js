@@ -66,6 +66,11 @@ async function startRecording(profile, mode, sender) {
   if (!profile || !mode) return { error: 'Profile and mode are required.' };
   if (currentState === STATE.RECORDING) return { error: 'Already recording. Finish or pause first.' };
 
+  // Query the active Instagram tab ourselves — sender.tab is null when called from popup
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const instagramTab = tabs.find(t => t.url && t.url.includes('instagram.com'));
+  const tabId = instagramTab?.id || sender?.tab?.id || null;
+
   const sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   const session = {
     id:           sessionId,
@@ -76,7 +81,7 @@ async function startRecording(profile, mode, sender) {
     captured:     0,
     duplicates:   0,
     start_time_ms: Date.now(),
-    tab_id:       sender?.tab?.id || null
+    tab_id:       tabId
   };
 
   currentState = STATE.RECORDING;
@@ -85,7 +90,11 @@ async function startRecording(profile, mode, sender) {
 
   // Activate content script in the Instagram tab
   if (session.tab_id) {
-    chrome.tabs.sendMessage(session.tab_id, { type: 'ACTIVATE' }).catch(() => {});
+    chrome.tabs.sendMessage(session.tab_id, { type: 'ACTIVATE' }).catch((e) => {
+      console.warn('[Insta Analyzer] Could not activate content script:', e.message);
+    });
+  } else {
+    console.warn('[Insta Analyzer] No Instagram tab found to activate.');
   }
 
   console.log(`[Insta Analyzer] Started recording: ${profile} / ${mode} (${sessionId})`);
@@ -114,11 +123,15 @@ async function resumeRecording(sender) {
   if (currentState !== STATE.PAUSED) return { error: 'Not currently paused.' };
   currentState = STATE.RECORDING;
 
+  // Re-query active Instagram tab (sender.tab is null from popup)
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const instagramTab = tabs.find(t => t.url && t.url.includes('instagram.com'));
+
   const { session } = await chrome.storage.local.get('session');
   if (session) {
     session.status = STATE.RECORDING;
     delete session.paused_at;
-    const tabId = sender?.tab?.id || session.tab_id;
+    const tabId = instagramTab?.id || sender?.tab?.id || session.tab_id;
     session.tab_id = tabId;
     await chrome.storage.local.set({ session });
     if (tabId) {
