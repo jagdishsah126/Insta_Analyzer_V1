@@ -1,350 +1,109 @@
-# 📱 Insta Analyzer — Extension Plan
+# 📋 Insta Analyzer — Plan v2.1
 
-> **Version**: 2.0 (Updated with ChatGPT Review — 17/18 suggestions applied)
-> **Type**: Brave/Chrome Browser Extension (Manifest V3)
-> **Author**: Your Zara 💖
-> **Reviewed By**: ChatGPT (suggestion_by_Chatgpt.md) · Gemini (not applicable — unrelated file)
+> Browser extension for Brave/Chrome to capture and analyze Instagram followers & following.
+> Updated to reflect all completed features as of v2.1.
 
 ---
 
-## 🎯 Goal
+## ✅ Phase 1 — Data Collection (COMPLETE)
 
-Build a browser extension that:
-1. Lets the user **manually browse** their Instagram following/followers list
-2. **Captures** usernames + display names + profile URLs silently in the background
-3. **Stores** the data per Instagram profile (supports multiple accounts)
-4. **Outputs** the data in a clean popup with export options (CSV / JSON / Copy) including metadata
-5. Later enables **comparison** between followers & following lists using Set operations
-
----
-
-## 🗂️ Phase Breakdown
-
-### Phase 1 — Data Collection *(Core)*
-### Phase 2 — Output & Export *(Priority)*
-### Phase 3 — Comparison Engine *(Future)*
+- [x] Detect followers/following dialog via DOM (`[role="dialog"]` fallback)
+- [x] MutationObserver to capture users as user scrolls manually
+- [x] Background service worker owns deduplication (Object key O(1) lookup)
+- [x] Per-profile storage: `profiles.username.followers/following.users`
+- [x] Session state machine: `idle → recording → paused → finished → exported`
+- [x] Session ID, status, captured count, duplicates, start time, tab_id
+- [x] `BLOCKED_ROUTES` set prevents Instagram nav links from being captured as users
+  - Added: `reels`, `popular`, `trending`, `tv`, `highlights`, `live`, `inbox`, etc.
+- [x] End-of-list detection (6s timeout → `POSSIBLE_END_REACHED`)
+- [x] **Bug Fix**: `startRecording()` and `resumeRecording()` now query active Instagram tab
+  directly (`chrome.tabs.query`) instead of relying on `sender.tab` (null from popup)
 
 ---
 
-## 🧩 Extension Architecture (Updated — Modular)
+## ✅ Phase 2 — Output & Export (COMPLETE)
+
+- [x] Copy to clipboard
+- [x] **Combined CSV export** — both followers + following in single file with metadata headers
+- [x] **Combined JSON export** — both lists in structured JSON with metadata
+- [x] **Comparison Result export** — CSV and JSON with 3 sections (NFB / NFL / Mutual)
+- [x] **Analysis export** — JSON with categorized account breakdown
+- [x] **Bug Fix**: `_dl()` function now appends `<a>` to DOM before `.click()` for reliable
+  downloads inside the Chrome extension context
+
+---
+
+## ✅ Phase 3 — Comparison Engine (COMPLETE)
+
+- [x] Set-based comparison algorithm in `utils/compare.js`
+- [x] `notFollowingBack` — you follow them, they don't follow back
+- [x] `notFollowedBack` — they follow you, you don't follow them
+- [x] `mutual` — both follow each other
+- [x] Displayed in popup Compare tab and dashboard Comparison column
+
+---
+
+## ✅ Phase 4 — Full-Screen Dashboard (COMPLETE)
+
+- [x] `⛶` button in popup opens `dashboard/dashboard.html` in new tab
+- [x] 4-column layout: Followers | Following | Comparison | Analysis
+- [x] Profile selector dropdown (supports multiple Instagram accounts)
+- [x] Stats bar: Followers / Following / NFB / NFL / Mutual counts
+- [x] Search/filter inside each column
+- [x] Per-column CSV/JSON exports
+- [x] Combined CSV/JSON from top bar
+- [x] Result CSV/JSON from Comparison column
+- [x] Analysis JSON from Analysis column
+
+---
+
+## ✅ Phase 5 — Accounts Analysis (COMPLETE)
+
+- [x] Classifies every unique account across both lists into:
+  - **Personal** — likely real human
+  - **Organizations / Pages** — campus, official, business, etc.
+  - **Meme / Community Pages** — meme, troll, confession, prasadi, etc.
+  - **Bots / Suspicious** — numeric patterns, email-as-username, repeated chars
+  - **Self** — your own captured profile entry
+- [x] Shows 📥/📤 badges indicating which list each account appears in
+- [x] Searchable / filterable
+- [x] Exportable as structured JSON
+
+---
+
+## 🔒 Privacy & Security (COMPLETE)
+
+- [x] `.gitignore` excludes `data/` and `*.json` — private data never committed
+- [x] Git history rewritten to remove previously committed data files
+- [x] All data stored in `chrome.storage.local` only — never leaves device
+- [x] No network requests, no APIs, no servers
+
+---
+
+## 🔮 Future Ideas
+
+- [ ] Historical tracking — compare two snapshots over time
+- [ ] Bulk export of all profiles in one action
+- [ ] Dark/Light theme toggle in dashboard
+- [ ] Display name extraction improvement (currently falls back to username)
+
+---
+
+## 📁 Architecture
 
 ```
-insta-analyzer/
-│
-├── manifest.json              → Extension config (MV3, minimal permissions)
-├── background.js              → Service worker (state machine, storage, dedup)
-├── content.js                 → Injected into Instagram (DOM observer + message sender)
-│
-├── utils/
-│   ├── instagram-dom.js       → All Instagram DOM selectors & parsers (isolated)
-│   ├── compare.js             → Set-based comparison algorithm
-│   ├── csv.js                 → CSV export formatter
-│   ├── json-export.js         → JSON export formatter
-│   └── helpers.js             → Shared utilities (timestamps, ID generation)
-│
-├── popup/
-│   ├── popup.html             → Main popup UI
-│   ├── popup.js               → Popup logic (display, export, controls)
-│   └── popup.css              → Popup styling
-│
-├── icons/
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
-│
-└── Plan.md                    → This file
+popup.js  →  chrome.runtime.sendMessage  →  background.js
+background.js  →  chrome.tabs.sendMessage(tabId)  →  content.js
+content.js  →  chrome.runtime.sendMessage  →  background.js
+dashboard.js  →  chrome.runtime.sendMessage  →  background.js
 ```
 
----
-
-## ⚙️ How It Works — Step by Step
-
-### Step 1 — Activation
-- User opens an Instagram profile and navigates to the followers/following dialog
-- User clicks **"Start Recording Followers"** or **"Start Recording Following"** button in popup
-- ✅ Mode is chosen explicitly by user — no URL-based detection (avoids SPA issues)
-- Extension transitions to `Recording` state
-- Badge shows live counter (e.g., `47`, `103`, `289`...)
-
-### Step 2 — Mode Detection (Updated)
-- ~~URL-based detection~~ **REMOVED** — Instagram is a SPA, URL may not change
-- User explicitly selects mode via popup buttons:
-  ```
-  [ 📥 Record Followers ]   [ 📤 Record Following ]
-  ```
-- `instagram-dom.js` also attempts to detect open dialog heading as a fallback
-
-### Step 3 — Data Capture (Content Script)
-- `content.js` uses a **MutationObserver** to watch the DOM for new user cards
-- Each new card is parsed via `instagram-dom.js`:
-  - `username` (e.g., `johndoe`)
-  - `display_name` (e.g., `John Doe`)
-  - `profile_url` (e.g., `https://instagram.com/johndoe`)
-- Raw data is sent to `background.js` — **no deduplication in content.js**
-- `background.js` owns all deduplication and storage logic
-
-### Step 4 — Storage & Deduplication (Background Script — Owns State)
-- `background.js` receives all raw entries
-- Deduplicates using **Object keyed by username** (O(1) lookup):
-  ```js
-  users["johndoe"] = { username, display_name, profile_url, captured_at }
-  ```
-- Stores under the current Instagram profile's namespace
-- Updates badge counter and session stats
-
-### Step 5 — User Scrolls Manually
-- **No automation** — user scrolls naturally
-- Extension captures every new batch silently
-- Live stats update in real-time:
-  ```
-  📊 312 captured · 28 duplicates skipped · 3m 41s elapsed
-  ```
-- If no new users appear after several scroll events → end-of-list detection triggers:
-  ```
-  💬 Looks like you've reached the end. Finish capture?
-  ```
-
-### Step 6 — Pause / Resume / Finish Controls
+**Load order (content scripts):**
 ```
-[ ⏸ Pause ]  [ ▶ Resume ]  [ ✅ Finish ]
-```
-- User can pause if switching tabs or needing a break
-- Resume continues from where it left off (session preserved)
-
-### Step 7 — Output Popup
-```
-┌──────────────────────────────────────────┐
-│  📊 Insta Analyzer                       │
-│  Profile: @johndoe                       │
-├──────────────────────────────────────────┤
-│  ✅ Following: 312 captured               │
-│  ✅ Followers: 289 captured               │
-│  🔁 Duplicates ignored: 28               │
-│  ⏱ Elapsed: 3m 41s                      │
-├──────────────────────────────────────────┤
-│  [📥 Record Followers] [📤 Record Following] │
-│  [⏸ Pause] [▶ Resume] [✅ Finish]        │
-├──────────────────────────────────────────┤
-│  📋 Preview (scrollable, copyable list)  │
-│  ┌────────────────────────────────────┐  │
-│  │ @username1 — Display Name 1        │  │
-│  │ @username2 — Display Name 2        │  │
-│  │ ...                                │  │
-│  └────────────────────────────────────┘  │
-├──────────────────────────────────────────┤
-│  [📋 Copy All]  [⬇ CSV]  [⬇ JSON]       │
-│  [🔄 New Session]  [🗑 Clear Data]       │
-└──────────────────────────────────────────┘
+helpers.js → instagram-dom.js → content.js
 ```
 
----
-
-## 📤 Output Options
-
-### Option A — Copy to Clipboard 📋
-- Copies full list as plain text (popup list itself is also selectable/copyable)
-- Format:
-  ```
-  @username1 — Display Name 1
-  @username2 — Display Name 2
-  ...
-  ```
-- Toast confirms: `✅ Copied 312 users to clipboard!`
-
-### Option B — Download as CSV ⬇
-- Filename: `insta_following_johndoe_2026-09-08.csv`
-- Includes metadata header + data:
-  ```csv
-  # Profile: johndoe
-  # Mode: Following
-  # Captured: 312
-  # Date: 2026-09-08
-  username,display_name,profile_url
-  johndoe,John Doe,https://instagram.com/johndoe
-  janedoe,Jane Doe,https://instagram.com/janedoe
-  ```
-
-### Option C — Download as JSON ⬇
-- Filename: `insta_following_johndoe_2026-09-08.json`
-- Includes metadata wrapper:
-  ```json
-  {
-    "profile": "johndoe",
-    "mode": "following",
-    "captured_at": "2026-09-08T14:05:00",
-    "count": 312,
-    "users": [
-      { "username": "johndoe", "display_name": "John Doe", "profile_url": "https://instagram.com/johndoe" }
-    ]
-  }
-  ```
-
----
-
-## 💾 Data Storage Schema (Updated — Per Profile, Object-Based)
-
-```js
-// chrome.storage.local structure
-{
-  "profiles": {
-    "johndoe": {
-      "followers": {
-        "captured_at": "2026-09-08T14:00:00",
-        "count": 289,
-        "users": {
-          "alice": { "username": "alice", "display_name": "Alice", "profile_url": "https://instagram.com/alice" },
-          "bob":   { "username": "bob",   "display_name": "Bob",   "profile_url": "https://instagram.com/bob" }
-        }
-      },
-      "following": {
-        "captured_at": "2026-09-08T14:05:00",
-        "count": 312,
-        "users": {
-          "charlie": { "username": "charlie", "display_name": "Charlie", "profile_url": "https://instagram.com/charlie" }
-        }
-      }
-    },
-    "elonmusk": {
-      "followers": { ... },
-      "following": { ... }
-    }
-  },
-  "session": {
-    "id": "sess_abc123xyz",
-    "profile": "johndoe",
-    "mode": "following",
-    "started_at": "2026-09-08T14:00:00",
-    "status": "recording"   // idle | recording | paused | finished | exported
-  }
-}
+**Load order (popup/dashboard):**
 ```
-
----
-
-## 🔄 State Machine (Extension States)
-
+helpers.js → csv.js → json-export.js → compare.js → popup.js/dashboard.js
 ```
-       Idle
-         ↓ (user clicks Start)
-  WaitingForDialog
-         ↓ (user opens followers/following modal)
-      Recording
-         ↓ (user pauses)
-       Paused
-         ↓ (user resumes)
-      Recording
-         ↓ (user finishes or end detected)
-      Finished
-         ↓ (user exports)
-      Exported
-         ↓ (new session)
-        Idle
-```
-
----
-
-## 🛡️ Safety & Edge Case Handling
-
-| Concern | How We Handle It |
-|---|---|
-| **Bot Detection** | Manual scrolling only — zero automation |
-| **Rate Limiting** | No API calls — pure DOM reading |
-| **Duplicates** | Object keyed by username (O(1), in background.js) |
-| **Data Privacy** | All data stored locally — never sent anywhere |
-| **Instagram DOM Changes** | All selectors isolated in `instagram-dom.js` |
-| **SPA URL issue** | Explicit user button selection instead of URL detection |
-| **Page refresh** | Session state preserved in `chrome.storage.local` |
-| **Tab switch** | Pause/Resume support |
-| **Popup closed while recording** | Background script keeps recording, state is preserved |
-| **Extension reload** | Session ID + status allows recovery |
-| **Duplicate recording** | State machine prevents re-starting if already recording |
-| **Profile switch mid-session** | Warning shown, new session started under new profile |
-| **Instagram logout** | Recording stops, data already saved is retained |
-| **Dialog closed early** | Finish prompt shown, partial data saved |
-
----
-
-## 🔮 Phase 3 — Comparison Engine
-
-Uses **Set-based algorithm** (via `compare.js`):
-
-```js
-const followingSet = new Set(Object.keys(profiles.johndoe.following.users))
-const followersSet = new Set(Object.keys(profiles.johndoe.followers.users))
-
-// Not Following Back (you follow, they don't)
-const notFollowingBack = [...followingSet].filter(u => !followersSet.has(u))
-
-// Not Followed Back (they follow, you don't)
-const notFollowedBack = [...followersSet].filter(u => !followingSet.has(u))
-
-// Mutual
-const mutual = [...followingSet].filter(u => followersSet.has(u))
-```
-
-| Analysis | Description |
-|---|---|
-| **Not Following Back** | You follow them, they don't follow you |
-| **Not Followed Back** | They follow you, you don't follow them |
-| **Mutual** | Both follow each other |
-
-All comparison results support CSV / JSON / Copy export with metadata.
-
----
-
-## ✅ Development Checklist
-
-### Phase 1 — Core Setup
-- [ ] `manifest.json` — MV3, minimal permissions (`storage`, `activeTab`, `https://www.instagram.com/*`)
-- [ ] `utils/instagram-dom.js` — All DOM selectors isolated here
-- [ ] `content.js` — MutationObserver + raw data sender (no dedup)
-- [ ] `background.js` — State machine + dedup (Object-based) + storage
-- [ ] Session manager with unique session IDs
-- [ ] Icon badge live counter
-
-### Phase 2 — Popup & Output
-- [ ] `popup.html` — UI layout with Start/Pause/Resume/Finish controls
-- [ ] `popup.css` — Clean styling
-- [ ] `popup.js` — Display stats, controls, export logic
-- [ ] `utils/csv.js` — CSV export with metadata header
-- [ ] `utils/json-export.js` — JSON export with metadata wrapper
-- [ ] `utils/helpers.js` — Timestamps, session ID generator
-- [ ] Toast notifications
-- [ ] Scrollable & copyable preview list
-- [ ] End-of-list detection prompt
-
-### Phase 3 — Comparison (Future)
-- [ ] `utils/compare.js` — Set-based diff algorithm
-- [ ] Comparison results UI in popup
-- [ ] Export comparison data (CSV/JSON/Copy)
-- [ ] Search / Sort / Filter in popup (nice-to-have, post-MVP)
-
----
-
-## 🚀 Tech Stack
-
-| Tool | Purpose |
-|---|---|
-| **Manifest V3** | Extension standard |
-| **Vanilla JS** | Lightweight, no framework needed |
-| **MutationObserver API** | Detect DOM changes on scroll |
-| **chrome.storage.local** | Persist data per profile |
-| **chrome.runtime messaging** | content ↔ background communication |
-| **State Machine (custom)** | Manage extension lifecycle states |
-| **Object/Map (keyed by username)** | O(1) dedup and lookup |
-| **Set operations** | Efficient comparison algorithm |
-| **Blob + URL.createObjectURL** | File downloads (CSV/JSON) |
-| **Clipboard API** | Copy to clipboard |
-
----
-
-## 📋 Suggestions Validity Summary
-
-| Source | Suggestions | Applied | Skipped |
-|---|---|---|---|
-| ChatGPT | 18 | 17 ✅ | 1 🔶 (Search/Filter — post-MVP) |
-| Gemini | 0 (unrelated file) | — | — |
-
----
-
-*Plan v2.0 updated by 💖 Your Zara — All valid suggestions from ChatGPT applied!*

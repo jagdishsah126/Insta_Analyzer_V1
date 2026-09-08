@@ -93,37 +93,62 @@
       <span class="col-title">🔄 Comparison</span>
       <span class="col-count" id="count-compare">—</span>
       <div class="col-actions">
-        <button id="btn-dl-result-csv"  class="btn btn-sm btn-accent" onclick="downloadResult('csv')">⬇ Result CSV</button>
-        <button id="btn-dl-result-json" class="btn btn-sm btn-accent" onclick="downloadResult('json')">⬇ Result JSON</button>
+        <button class="btn btn-sm btn-accent" onclick="downloadResult('csv')">⬇ CSV</button>
+        <button class="btn btn-sm btn-accent" onclick="downloadResult('json')">⬇ JSON</button>
       </div>
     </div>
     <input type="text" class="search-box" id="search-compare" placeholder="🔍 Search comparison..." oninput="filterCompare()"/>
-
-    <!-- Sub-sections -->
     <div class="compare-container" id="compare-container">
       <div class="compare-group">
-        <div class="compare-group-header red">
-          ❌ Not Following You Back
-          <span class="compare-cnt" id="cnt-nfb">0</span>
-        </div>
+        <div class="compare-group-header red">❌ Not Following You Back <span class="compare-cnt" id="cnt-nfb">0</span></div>
         <div class="user-list compare-list" id="list-nfb"></div>
       </div>
       <div class="compare-group">
-        <div class="compare-group-header blue">
-          👤 You Don't Follow Back
-          <span class="compare-cnt" id="cnt-nfl">0</span>
-        </div>
+        <div class="compare-group-header blue">👤 You Don't Follow Back <span class="compare-cnt" id="cnt-nfl">0</span></div>
         <div class="user-list compare-list" id="list-nfl"></div>
       </div>
       <div class="compare-group">
-        <div class="compare-group-header green">
-          🤝 Mutual Followers
-          <span class="compare-cnt" id="cnt-mutual">0</span>
-        </div>
+        <div class="compare-group-header green">🤝 Mutual Followers <span class="compare-cnt" id="cnt-mutual">0</span></div>
         <div class="user-list compare-list" id="list-mutual"></div>
       </div>
     </div>
     <div class="empty" id="compare-empty">Capture both Followers &amp; Following to see comparison.</div>
+  </section>
+
+  <!-- Accounts Analysis Column -->
+  <section class="col" id="col-analysis">
+    <div class="col-header">
+      <span class="col-title">🔬 Accounts Analysis</span>
+      <span class="col-count" id="count-analysis">—</span>
+      <div class="col-actions">
+        <button class="btn btn-sm" onclick="exportAnalysisJSON()">⬇ JSON</button>
+      </div>
+    </div>
+    <input type="text" class="search-box" id="search-analysis" placeholder="🔍 Filter accounts..." oninput="filterAnalysis()"/>
+    <div class="compare-container" id="analysis-container">
+
+      <div class="compare-group">
+        <div class="compare-group-header green">👤 Personal Accounts <span class="compare-cnt" id="cnt-personal">0</span></div>
+        <div class="user-list compare-list" id="list-personal"></div>
+      </div>
+      <div class="compare-group">
+        <div class="compare-group-header blue">🏢 Organizations / Pages <span class="compare-cnt" id="cnt-orgs">0</span></div>
+        <div class="user-list compare-list" id="list-orgs"></div>
+      </div>
+      <div class="compare-group">
+        <div class="compare-group-header" style="background:#1a1400;color:#ffd54f;border-left:3px solid #ffd54f;">😂 Meme / Community Pages <span class="compare-cnt" id="cnt-memes">0</span></div>
+        <div class="user-list compare-list" id="list-memes"></div>
+      </div>
+      <div class="compare-group">
+        <div class="compare-group-header red">🤖 Bots / Suspicious Accounts <span class="compare-cnt" id="cnt-bots">0</span></div>
+        <div class="user-list compare-list" id="list-bots"></div>
+      </div>
+      <div class="compare-group">
+        <div class="compare-group-header" style="background:#111;color:#888;border-left:3px solid #555;">👤 Your Own Account <span class="compare-cnt" id="cnt-self">0</span></div>
+        <div class="user-list compare-list" id="list-self"></div>
+      </div>
+    </div>
+    <div class="empty" id="analysis-empty">Capture at least Followers or Following to analyze.</div>
   </section>
 
 </main>

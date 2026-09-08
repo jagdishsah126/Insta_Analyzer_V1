@@ -8,10 +8,60 @@
   let allProfiles    = {};
   let currentProfile = null;
   let compareResult  = null;
+  let analysisResult = null;
 
   // Raw user arrays for current profile (for filtering)
   let rawFollowers = [];
   let rawFollowing = [];
+
+  // ── Non-human Detection Patterns ──────────────────────────────────────────────
+  const ORG_KEYWORDS = [
+    'official','campus','college','university','school','institute','ioe','ices',
+    'nepal','wrc','bct','club','team','community','conclave','freshers','hub',
+    'awssbg','nsuwrc','routineof','paschimancal','student','civil','geomatics',
+    'abroad','solution','market','trade','store','shop','jewellery','food',
+    'media','news','press','tv','channel','radio'
+  ];
+  const MEME_KEYWORDS = [
+    'meme','troll','confession','bekar','uncensored','prasadi','humour','humor',
+    'funny','lol','roast','savage','viral','reel','content','facts','shitpost'
+  ];
+  const BOT_PATTERNS = [
+    /\d{5,}/,                    // 5+ consecutive digits
+    /[a-z]{2,}\d{6,}$/,          // letters + 6+ digits at end
+    /^[a-z0-9]+\.\d{6,}/,        // prefix.6+digits
+    /gmail\.com/,                 // email-as-username
+    /chameleon\.\d+/,             // chameleon bot pattern
+    /archimedes3\.14/,            // pi username
+    /sudarsannn{4,}/,             // repeating chars (5+)
+    /(.)\1{5,}/,                  // any char repeated 6+ times
+    /ahvanloplop|beogokader|dakkibhagora|ll_cute_baby|sweetzswal/
+  ];
+
+  function classifyAccount(username, selfUsername) {
+    const low = username.toLowerCase();
+    if (username === selfUsername)                               return 'self';
+    if (MEME_KEYWORDS.some(k => low.includes(k)))               return 'meme';
+    if (ORG_KEYWORDS.some(k => low.includes(k)))                return 'org';
+    if (BOT_PATTERNS.some(p => p.test(low)))                    return 'bot';
+    return 'personal';
+  }
+
+  function runAnalysis(followers, following, selfUsername) {
+    const allMap = {};
+    followers.forEach(u => { allMap[u.username] = { ...u, lists: ['followers'] }; });
+    following.forEach(u => {
+      if (allMap[u.username]) allMap[u.username].lists.push('following');
+      else allMap[u.username] = { ...u, lists: ['following'] };
+    });
+
+    const result = { personal: [], org: [], meme: [], bot: [], self: [] };
+    Object.values(allMap).forEach(u => {
+      const cat = classifyAccount(u.username, selfUsername);
+      result[cat].push(u);
+    });
+    return result;
+  }
 
   // ── Init ──────────────────────────────────────────────────────────────────────
   async function init() {
@@ -69,9 +119,84 @@
       document.getElementById('compare-container').classList.add('hidden');
     }
 
+    // Accounts Analysis
+    analysisResult = runAnalysis(rawFollowers, rawFollowing, profile);
+    renderAnalysis(analysisResult);
+
     updateStatsBar(rawFollowers, rawFollowing, compareResult);
     document.getElementById('stats-bar').classList.remove('hidden');
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  function renderAnalysis(result) {
+    if (!result) return;
+    const total = Object.values(result).flat().length;
+    document.getElementById('count-analysis').textContent = total;
+    document.getElementById('analysis-empty').classList.add('hidden');
+    document.getElementById('analysis-container').classList.remove('hidden');
+
+    const map = {
+      personal: ['list-personal','cnt-personal'],
+      org:      ['list-orgs',    'cnt-orgs'],
+      meme:     ['list-memes',   'cnt-memes'],
+      bot:      ['list-bots',    'cnt-bots'],
+      self:     ['list-self',    'cnt-self'],
+    };
+    for (const [cat, [listId, cntId]] of Object.entries(map)) {
+      const users = result[cat] || [];
+      document.getElementById(cntId).textContent = users.length;
+      document.getElementById(listId).innerHTML = users.length
+        ? users.map(u => analysisCard(u)).join('')
+        : '<div class="empty">None detected.</div>';
+    }
+  }
+
+  function analysisCard(u) {
+    const tag = u.lists ? u.lists.map(l => `<span class="list-tag ${l}">${l === 'followers' ? '📥' : '📤'}</span>`).join('') : '';
+    return `
+      <a class="user-card" href="${u.profile_url}" target="_blank" rel="noopener">
+        <div class="user-avatar">${(u.username || '?').charAt(0).toUpperCase()}</div>
+        <div class="user-info">
+          <div class="user-name">@${u.username} ${tag}</div>
+          <div class="user-display">${u.display_name !== u.username ? u.display_name : ''}</div>
+        </div>
+        <span class="user-link">↗</span>
+      </a>`;
+  }
+
+  window.filterAnalysis = function () {
+    if (!analysisResult) return;
+    const q = document.getElementById('search-analysis').value.trim().toLowerCase();
+    const map = { personal:'list-personal', org:'list-orgs', meme:'list-memes', bot:'list-bots', self:'list-self' };
+    for (const [cat, listId] of Object.entries(map)) {
+      const users = (analysisResult[cat] || []).filter(u =>
+        !q || u.username.toLowerCase().includes(q) || u.display_name.toLowerCase().includes(q)
+      );
+      document.getElementById(listId).innerHTML = users.length
+        ? users.map(u => analysisCard(u)).join('')
+        : `<div class="empty">No results.</div>`;
+    }
+  };
+
+  window.exportAnalysisJSON = function () {
+    if (!analysisResult || !currentProfile) return showToast('No analysis data', 'error');
+    const obj = {
+      meta: { profile: currentProfile, analyzed_at: new Date().toISOString(), generated_by: 'Insta Analyzer' },
+      summary: {
+        personal:    analysisResult.personal.length,
+        organizations: analysisResult.org.length,
+        meme_pages:  analysisResult.meme.length,
+        bots_suspicious: analysisResult.bot.length,
+        self:        analysisResult.self.length,
+      },
+      personal:      analysisResult.personal.map(u => ({ username: u.username, display_name: u.display_name, profile_url: u.profile_url, lists: u.lists })),
+      organizations: analysisResult.org.map(u => ({ username: u.username, display_name: u.display_name, profile_url: u.profile_url, lists: u.lists })),
+      meme_pages:    analysisResult.meme.map(u => ({ username: u.username, display_name: u.display_name, profile_url: u.profile_url, lists: u.lists })),
+      bots_suspicious: analysisResult.bot.map(u => ({ username: u.username, display_name: u.display_name, profile_url: u.profile_url, lists: u.lists })),
+    };
+    JSONExporter._dl(obj, `insta_analysis_${sanitizeFilename(currentProfile)}_${todayDate()}.json`);
+    showToast('⬇ Analysis JSON downloaded!', 'success');
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────────
   function renderColumn(mode, users) {
