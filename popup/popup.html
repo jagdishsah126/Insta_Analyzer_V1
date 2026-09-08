@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insta Analyzer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-logo">
+      <span class="logo-icon">📊</span>
+      <span class="logo-text">Insta Analyzer</span>
+    </div>
+    <div id="state-badge" class="state-badge idle">Idle</div>
+  </header>
+
+  <!-- ── Profile Input (shown when idle) ── -->
+  <section id="section-setup" class="section">
+    <label class="input-label">Instagram Username to Analyze</label>
+    <div class="input-row">
+      <span class="input-prefix">@</span>
+      <input
+        id="profile-input"
+        type="text"
+        class="profile-input"
+        placeholder="username"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+    <p class="hint">Open their Followers or Following list first, then click below.</p>
+    <div class="btn-row">
+      <button id="btn-start-followers" class="btn btn-followers">
+        📥 Record Followers
+      </button>
+      <button id="btn-start-following" class="btn btn-following">
+        📤 Record Following
+      </button>
+    </div>
+  </section>
+
+  <!-- ── Recording Controls (shown while recording/paused) ── -->
+  <section id="section-recording" class="section hidden">
+    <div class="recording-info">
+      <div class="rec-profile" id="rec-profile">@username</div>
+      <div class="rec-mode"    id="rec-mode">Recording Followers</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-captured">0</div>
+        <div class="stat-label">Captured</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-dupes">0</div>
+        <div class="stat-label">Skipped</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-elapsed">0s</div>
+        <div class="stat-label">Elapsed</div>
+      </div>
+    </div>
+
+    <!-- End-of-list notice -->
+    <div id="end-notice" class="end-notice hidden">
+      🏁 Looks like you reached the end!
+      <button id="btn-finish-auto" class="btn btn-sm btn-success">Finish Capture</button>
+    </div>
+
+    <div class="btn-row">
+      <button id="btn-pause"  class="btn btn-pause">⏸ Pause</button>
+      <button id="btn-resume" class="btn btn-resume hidden">▶ Resume</button>
+      <button id="btn-finish" class="btn btn-finish">✅ Finish</button>
+    </div>
+  </section>
+
+  <!-- ── Results (shown after finished) ── -->
+  <section id="section-results" class="section hidden">
+    <div class="results-header">
+      <span class="results-title">📋 Captured Data</span>
+      <div class="tabs">
+        <button id="tab-followers" class="tab active">Followers</button>
+        <button id="tab-following" class="tab">Following</button>
+        <button id="tab-compare"   class="tab">🔄 Compare</button>
+      </div>
+    </div>
+
+    <!-- Summary bar -->
+    <div id="summary-bar" class="summary-bar">
+      <span id="summary-count">0 users</span>
+      <span id="summary-date"></span>
+    </div>
+
+    <!-- Search -->
+    <input id="search-input" type="text" class="search-input" placeholder="🔍 Search username..." />
+
+    <!-- List preview -->
+    <div id="user-list" class="user-list">
+      <div class="empty-state">No data captured yet.</div>
+    </div>
+
+    <!-- Compare results -->
+    <div id="compare-results" class="compare-results hidden">
+      <div class="compare-section" id="compare-not-following-back">
+        <h4>❌ Not Following You Back (<span id="cnt-nfb">0</span>)</h4>
+        <div class="compare-list" id="list-nfb"></div>
+      </div>
+      <div class="compare-section" id="compare-not-followed-back">
+        <h4>👤 You Don't Follow Back (<span id="cnt-nfl">0</span>)</h4>
+        <div class="compare-list" id="list-nfl"></div>
+      </div>
+      <div class="compare-section">
+        <h4>🤝 Mutual (<span id="cnt-mutual">0</span>)</h4>
+      </div>
+    </div>
+
+    <!-- Export actions -->
+    <div class="export-bar">
+      <button id="btn-copy"  class="btn btn-sm btn-copy">📋 Copy All</button>
+      <button id="btn-csv"   class="btn btn-sm btn-csv">⬇ CSV</button>
+      <button id="btn-json"  class="btn btn-sm btn-json">⬇ JSON</button>
+    </div>
+
+    <!-- Session management -->
+    <div class="session-bar">
+      <button id="btn-new-session" class="btn btn-sm btn-ghost">🔄 New Session</button>
+      <button id="btn-clear"       class="btn btn-sm btn-danger-ghost">🗑 Clear Data</button>
+    </div>
+  </section>
+
+  <!-- ── Toast Notification ── -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ── Scripts ── -->
+  <script src="../utils/helpers.js"></script>
+  <script src="../utils/csv.js"></script>
+  <script src="../utils/json-export.js"></script>
+  <script src="../utils/compare.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
